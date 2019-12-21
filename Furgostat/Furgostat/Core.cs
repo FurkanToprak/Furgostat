@@ -114,6 +114,7 @@ namespace Furgostat
                 LoadNewLaserCalibration(files[files.Length - 1]);
             }
             DataCollector.Start();
+            DataCollector.Start();
         }
         public void DataCollector_Tick(object state, ElapsedEventArgs e)
         {
@@ -142,6 +143,15 @@ namespace Furgostat
                     ODDisplay.AddData(ODTime[ODTime.Count - 1], CurrentOD);
                     Console.WriteLine(err.Message);
                 }
+            }
+            else
+            {
+                Console.WriteLine("AAA");
+                Log("AAAA");
+                if (ODTime.Count <= 0) // TODO: BUG
+                    Log("BBC");
+                if (CurrentOD[0] <= -10) // TODO: BUG
+                    Log("BBA");
             }
             DataCollector.Start();
         }

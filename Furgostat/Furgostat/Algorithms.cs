@@ -81,7 +81,7 @@ namespace Furgostat
             }
             Cycler.Start();
             FileName = Path + Type + "-" + DateTime.Now.ToString("yyyy-MMM-dd-HH-mm-ss") + ".csv";
-            core.Log(Type + " has started." + TubeCount);
+            core.Log(Type + " has started.");
         }
         public void TimedMorbidostatCycle(object state, System.Timers.ElapsedEventArgs e)
         {
