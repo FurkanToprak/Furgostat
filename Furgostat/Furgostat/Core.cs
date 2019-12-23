@@ -130,6 +130,10 @@ namespace Furgostat
             // Skip failed analog reads
             if (CurrentOD[0] > -10)
                 AddODData(elapsedTime, CurrentOD);
+            else
+            {
+                Log("Analog problems " + CurrentOD[0]);
+            }
 
             // built-in data streamer
             if (ODDisplay != null && ODTime.Count > 0 && CurrentOD[0] > -10)
@@ -146,8 +150,6 @@ namespace Furgostat
             }
             else
             {
-                Console.WriteLine("AAA");
-                Log("AAAA");
                 if (ODTime.Count <= 0) // TODO: BUG
                     Log("BBC");
                 if (CurrentOD[0] <= -10) // TODO: BUG
@@ -167,7 +169,7 @@ namespace Furgostat
                 Relays[MediaRelayIDs[i, 0]].TurnOn(MediaRelayIDs[i, 1]);
                 cosmetic.Add(i + 1);
             }
-            Log("Media is started flowing for cultures" + string.Join(", ", cosmetic));
+            Log("Media has started flowing for cultures" + string.Join(", ", cosmetic));
             Thread.Sleep((Int32)(Time * 1000));
             foreach (int i in CultureId)
             {
@@ -179,7 +181,7 @@ namespace Furgostat
         {
             Thread.Sleep((Int32) MixingTime * 1000);
             Relays[Suction[0]].TurnOn(Suction[1]);
-            Log("Suction is started for all cultures." + Time);
+            Log("Suction has started for all cultures." + Time);
             Thread.Sleep((Int32)(Time * 1000));
             Relays[Suction[0]].TurnOff(Suction[1]);
             Log("Suction is stopped for all cultures.");
@@ -192,7 +194,7 @@ namespace Furgostat
                 Relays[DrugARelayIDs[i, 0]].TurnOn(DrugARelayIDs[i, 1]);
                 Cosmetic.Add(i + 1);
             }
-            Log("Drug A is started flowing for cultures" + string.Join(", ", Cosmetic));
+            Log("Drug A has started flowing for cultures" + string.Join(", ", Cosmetic));
 
             Thread.Sleep((Int32)(Time * 1000));
 
@@ -210,7 +212,7 @@ namespace Furgostat
                 Relays[DrugBRelayIDs[i, 0]].TurnOn(DrugBRelayIDs[i, 1]);
                 Cosmetic.Add(i + 1);
             }
-            Log("Drug B is started flowing for cultures" + string.Join(", ", Cosmetic));
+            Log("Drug B has started flowing for cultures" + string.Join(", ", Cosmetic));
 
             Thread.Sleep((Int32)(Time * 1000));
 

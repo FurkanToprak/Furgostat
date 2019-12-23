@@ -27,7 +27,7 @@ namespace Furgostat
             this.ControlBox = false;
             this.ClientSize = new System.Drawing.Size(1200, 900);
             // initalize data arrays
-            for (int i = 0; i < algos.TubeCount; ++i)
+            for (int i = 0; i < Algorithms.TubeCount; ++i)
                 ODplot.Add(new List<double>());
 
             CreateChart(10, 10, 220, 280, "Culture 1");
@@ -103,7 +103,6 @@ namespace Furgostat
         }
         public void AddData(double Time, Double[] OD)
         {
-            Console.WriteLine("A");
             // Check if data is okay
             for (int i = 0; i < 15; ++i)
             {
@@ -119,10 +118,10 @@ namespace Furgostat
             if (Timeplot.Count > RefreshLimit || Timeplot.Count == 0)
             {
                 Timeplot.RemoveRange(0, Timeplot.Count);
-                for (int i = 0; i < algos.TubeCount; ++i) ODplot[i].RemoveRange(0, ODplot[i].Count);
+                for (int i = 0; i < Algorithms.TubeCount; ++i) ODplot[i].RemoveRange(0, ODplot[i].Count);
 
                 // Rescale axis limits
-                for (int i = 0; i < algos.TubeCount; ++i) if (Charts[i].IsHandleCreated)
+                for (int i = 0; i < Algorithms.TubeCount; ++i) if (Charts[i].IsHandleCreated)
                     {
                         string istr = i.ToString();
                         Charts[i].Invoke((Action)(() =>
@@ -142,10 +141,10 @@ namespace Furgostat
             }
 
             Timeplot.Add(Time);
-            for (int i = 0; i < algos.TubeCount; ++i)
+            for (int i = 0; i < Algorithms.TubeCount; ++i)
                 ODplot[i].Add((double)OD[i]);
 
-            for (int i = 0; i < algos.TubeCount; ++i)
+            for (int i = 0; i < Algorithms.TubeCount; ++i)
             {
                 string istr = i.ToString();
                 if (Charts[i].IsHandleCreated)

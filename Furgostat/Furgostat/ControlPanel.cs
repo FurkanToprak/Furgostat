@@ -31,6 +31,7 @@ namespace Furgostat
             algos = new Algorithms(ref _core);
             core.algos = algos;
             core.MainLog.CollectionChanged += UpdateLog;
+            algos.TubeLogger.CollectionChanged += UpdateTubeLog;
             ODDisplay = new ODMonitor(ref algos);
             core.ODDisplay = ODDisplay;
             ODOn = false;
@@ -51,6 +52,23 @@ namespace Furgostat
                     textBox16.AppendText(core.MainLog[core.MainLog.Count - 1].Time.ToString("yyyy-MM-ddTHH:mm:ssZ")
                         + " " + core.MainLog[core.MainLog.Count - 1].Message + "\n");
                 }
+            }
+            catch
+            {
+                // skip logging if it interfere with other GUI operations
+            }
+        }
+        delegate void UpdateTubeLogCallback(object sender, NotifyCollectionChangedEventArgs e);
+        public void UpdateTubeLog(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            try
+            {
+                String str = "";
+                for(int i = 0; i < algos.TubeLogger.Count; ++i)
+                {
+                    str += "Tube " + algos.TubeLogger[i].TubeNumber + ": " + algos.TubeLogger[i].Message + "\r\n";
+                }
+                textBox5.Text = str;
             }
             catch
             {
@@ -191,7 +209,6 @@ namespace Furgostat
         {
 
         }
-
         private void button14_Click(object sender, EventArgs e)
         {
             textBoxParameterDilutionCyclePeriod.Enabled = LockOn;
@@ -199,9 +216,31 @@ namespace Furgostat
             textBoxDrugAdditionTime.Enabled = LockOn;
             textBox18.Enabled = LockOn;
             textBox17.Enabled = LockOn;
-            textBox21.Enabled = LockOn;
-            textBox20.Enabled = LockOn;
+            button15.Enabled = LockOn;
+            button16.Enabled = LockOn;
+            button17.Enabled = LockOn;
+            button18.Enabled = LockOn;
+            button19.Enabled = LockOn;
+            button20.Enabled = LockOn;
+            button21.Enabled = LockOn;
+            button22.Enabled = LockOn;
+            button23.Enabled = LockOn;
+            textBox6.Enabled = LockOn;
+            textBox9.Enabled = LockOn;
+            textBox13.Enabled = LockOn;
+            textBox14.Enabled = LockOn;
+            textBox15.Enabled = LockOn;
             textBox19.Enabled = LockOn;
+            textBox20.Enabled = LockOn;
+            textBox21.Enabled = LockOn;
+            textBox22.Enabled = LockOn;
+            textBox23.Enabled = LockOn;
+            textBox24.Enabled = LockOn;
+            textBox25.Enabled = LockOn;
+            textBox26.Enabled = LockOn;
+            textBox27.Enabled = LockOn;
+            textBox28.Enabled = LockOn;
+            textBox29.Enabled = LockOn;
             LockOn = !LockOn;
         }
 
@@ -209,7 +248,7 @@ namespace Furgostat
         {
             try
             {
-                algos.LowerThreshold = Double.Parse(textBox21.Text);
+                //algos.LowerThreshold = Double.Parse(textBox21.Text);
             }
             catch(FormatException err)
             {
@@ -272,7 +311,7 @@ namespace Furgostat
         {
             try
             {
-                algos.MiddleThreshold = Double.Parse(textBox20.Text);
+                //algos.MiddleThreshold = Double.Parse(textBox20.Text);
             }
             catch(FormatException err)
             {
@@ -284,7 +323,7 @@ namespace Furgostat
         {
             try
             {
-                algos.UpperThreshold = Double.Parse(textBox19.Text);
+                //algos.UpperThreshold = Double.Parse(textBox19.Text);
             }
             catch (FormatException err)
             {
@@ -314,35 +353,11 @@ namespace Furgostat
         {
             try
             {
-                algos.Volume = Double.Parse(textBox15.Text);
+                //algos.Volume = Double.Parse(textBox15.Text);
             }
             catch(FormatException)
             {
                 // Empty Box, do nothing.
-            }
-        }
-
-        private void textBox14_TextChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                algos.DrugAStockConcentration = Double.Parse(textBox14.Text);
-            }
-            catch(FormatException err)
-            {
-                // Empty Box, do nothing.
-            }
-        }
-
-        private void textBox13_TextChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                algos.DrugBStockConcentration = Double.Parse(textBox13.Text);
-            }
-            catch(FormatException err)
-            {
-                // Empty box, do nothing
             }
         }
 
@@ -745,19 +760,6 @@ namespace Furgostat
 
         }
 
-        private void trackBar1_Scroll(object sender, EventArgs e)
-        {
-            label18.Text = "Tube Number " + trackBar1.Value;
-            try
-            {
-                textBox5.Text = String.Join("\n", algos.Tubes[trackBar1.Value].Last10Events);
-            }
-            catch(ArgumentOutOfRangeException err)
-            {
-                textBox5.Text = "Experiment Not Started. Start an experiment to view the status of a tube.";
-            }
-        }
-
         private void label18_Click(object sender, EventArgs e)
         {
 
@@ -772,10 +774,308 @@ namespace Furgostat
         {
 
         }
+
+        private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button15_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox9.Text);
+                if (textBox6.Text.Contains(":"))
+                {
+                    string[] Parse = textBox6.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TubeDrugAConcentrationSettings[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox6.Text) - 1;
+                    algos.TubeDrugAConcentrationSettings[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox6_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox9_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button18_Click(object sender, EventArgs e)
+        {
+            textBoxParameterDilutionCyclePeriod.Enabled = LockOn;
+            textBoxMediaDilutionTime.Enabled = LockOn;
+            textBoxDrugAdditionTime.Enabled = LockOn;
+            textBox18.Enabled = LockOn;
+            textBox17.Enabled = LockOn;
+            LockOn = !LockOn;
+        }
+
+        private void button16_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox13.Text);
+                if (textBox14.Text.Contains(":"))
+                {
+                    string[] Parse = textBox14.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.LowerThreshold[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox14.Text) - 1;
+                    algos.LowerThreshold[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox13_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox14_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button17_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox15.Text);
+                if (textBox19.Text.Contains(":"))
+                {
+                    string[] Parse = textBox19.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TubeVolumeSettings[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox19.Text) - 1;
+                    algos.TubeVolumeSettings[i] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void button18_Click_1(object sender, EventArgs e)
+        {
+            try
+            {
+                if (textBox20.Text.Contains(":"))
+                {
+                    string[] Parse = textBox20.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TubeStatus[i - 1] = true;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox20.Text) - 1;
+                    algos.TubeStatus[i - 1] = true;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox15_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox19_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox20_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button19_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (textBox21.Text.Contains(":"))
+                {
+                    string[] Parse = textBox21.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TubeStatus[i - 1] = true;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox21.Text) - 1;
+                    algos.TubeStatus[i - 1] = true;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox21_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox5_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button21_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox24.Text);
+                if (textBox25.Text.Contains(":"))
+                {
+                    string[] Parse = textBox25.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.MiddleThreshold[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox25.Text) - 1;
+                    algos.MiddleThreshold[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void button23_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox28.Text);
+                if (textBox29.Text.Contains(":"))
+                {
+                    string[] Parse = textBox29.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.GlobalThreshold[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox29.Text) - 1;
+                    algos.GlobalThreshold[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void button22_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox26.Text);
+                if (textBox27.Text.Contains(":"))
+                {
+                    string[] Parse = textBox27.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.UpperThreshold[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox27.Text) - 1;
+                    algos.UpperThreshold[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox28_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button20_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox22.Text);
+                if (textBox23.Text.Contains(":"))
+                {
+                    string[] Parse = textBox23.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TubeDrugBConcentrationSettings[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox23.Text) - 1;
+                    algos.TubeDrugBConcentrationSettings[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+    }
     }
     public class LaserCalibrationFile
     {
         public string Name { get; set; }
         public string Path { get; set; }
     }
-}

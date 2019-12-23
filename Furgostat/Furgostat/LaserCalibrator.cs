@@ -58,6 +58,7 @@ namespace Furgostat
             CreateChart(730, 620, 220, 280, "Culture 14");
             CreateChart(970, 620, 220, 280, "Culture 15");
             core.Input = new Analog(0);
+            // fixCalibration();
         }
 
         private void LaserCalibrator_Load(object sender, EventArgs e)
@@ -200,7 +201,66 @@ namespace Furgostat
                 currentSample++;
             })).Start();
         }
+        private void fixCalibration()
+        {
+            string[] lines = System.IO.File.ReadAllLines(@"C:\Users\s135322\Desktop\Furgostat\data\calibrations\LaserCalibration-2019-Dec-23-12-44-38 - Copy.csv");
+            foreach(string line in lines)
+            {
+                Double[] splat = Array.ConvertAll(line.Split(','), Double.Parse);
+                double[] volts = new double[splat.Length - 1];
+                for (int i = 0; i < splat.Length - 1; ++i)
+                    volts[i] = splat[i];
+                double od_value = splat[splat.Length - 1];
+                AddData(volts, od_value);
+            }
+            DateTime saveNow = DateTime.Now;
+            string path = @"C:\Users\s135322\Desktop\Furgostat\data\calibrations\";
+            string filename = "LaserCalibration-" + saveNow.ToString("yyyy-MMM-dd-HH-mm-ss") + ".csv";
+            string csv_line;
+            List<List<double>> fitOD = new List<List<double>>();
 
+            // data points
+            for (int i = 0; i < numChan; ++i)
+            {
+                fitOD.Add(new List<double>());
+                var xdata = new double[Volt[i].Count];
+                var ydata = new double[OD[i].Count];
+                for (int j = 0; j < Volt[i].Count; j++)
+                {
+                    xdata[j] = Volt[i][j];
+                    ydata[j] = (OD[i][j]);
+                }
+
+                double[] p = Fit.Polynomial(xdata, ydata, 1);
+                p0[i] = p[0]; p1[i] = p[1];
+
+                for (int j = 0; j < Volt[i].Count; j++)
+                    fitOD[i].Add(Volt[i][j] * p1[i] + p0[i]);
+                charts[i].Series["fit"].Points.DataBindXY(Volt[i], fitOD[i]);
+            }
+            using (StreamWriter file = new StreamWriter(path + filename))
+            {
+                string p0str = "", p1str = "";
+                for (int i = 0; i < numChan; ++i)
+                {
+                    p0str += p0[i].ToString() + "\t";
+                    p1str += p1[i].ToString() + "\t";
+                }
+                file.WriteLine(p0str);
+                file.WriteLine(p1str);
+
+                for (int i = 0; i < Volt[0].Count; ++i)
+                {
+                    csv_line = "";
+                    for (int j = 0; j < numChan; j++)
+                    {
+                        csv_line += Volt[j][i].ToString() + "\t";
+                    }
+                    csv_line += OD[0][i].ToString();
+                    file.WriteLine(csv_line);
+                }
+            }
+        }
         private void fitToolStripMenuItem_Click_1(object sender, EventArgs e)
         {
             List<List<double>> fitOD = new List<List<double>>();
@@ -213,7 +273,7 @@ namespace Furgostat
                 var ydata = new double[OD[i].Count];
                 for (int j = 0; j < Volt[i].Count; j++)
                 {
-                    xdata[j] = Math.Log(Volt[i][j]);
+                    xdata[j] = Volt[i][j];
                     ydata[j] = (OD[i][j]);
                 }
 
@@ -221,11 +281,10 @@ namespace Furgostat
                 p0[i] = p[0]; p1[i] = p[1];
 
                 for (int j = 0; j < Volt[i].Count; j++)
-                    fitOD[i].Add((Math.Log(Volt[i][j]) * p1[i]) + p0[i]);
+                    fitOD[i].Add(Volt[i][j] * p1[i] + p0[i]);
                 charts[i].Series["fit"].Points.DataBindXY(Volt[i], fitOD[i]);
             }
         }
-
         private void saveCalibrationToolStripMenuItem_Click_1(object sender, EventArgs e)
         {
             DateTime saveNow = DateTime.Now;

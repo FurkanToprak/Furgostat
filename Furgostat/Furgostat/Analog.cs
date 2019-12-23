@@ -76,13 +76,13 @@ namespace Furgostat
         {
             return convertADtoOD(ADData);
         }
-        private Double[] convertADtoOD(Double[] AD)
+        private Double[] convertADtoOD(Double[] AD) // Calibrations
         {
             Double[] OD = new Double[HighChan - LowChan + 1];
             Double odc;
             for (int i = LowChan; i <= HighChan; ++i)
             {
-                odc = (Math.Log(AD[i]) * p1[i]) + p0[i];
+                odc = AD[i] * p1[i] + p0[i];
                 if (odc <= 1e2)
                     OD[i] = odc;
                 else
