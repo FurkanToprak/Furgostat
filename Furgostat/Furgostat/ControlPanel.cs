@@ -31,7 +31,7 @@ namespace Furgostat
             algos = new Algorithms(ref _core);
             core.algos = algos;
             core.MainLog.CollectionChanged += UpdateLog;
-            algos.TubeLogger.CollectionChanged += UpdateTubeLog;
+            core.TubeLogger.CollectionChanged += UpdateTubeLog;
             ODDisplay = new ODMonitor(ref algos);
             core.ODDisplay = ODDisplay;
             ODOn = false;
@@ -61,18 +61,27 @@ namespace Furgostat
         delegate void UpdateTubeLogCallback(object sender, NotifyCollectionChangedEventArgs e);
         public void UpdateTubeLog(object sender, NotifyCollectionChangedEventArgs e)
         {
+            String str = "";
+            for (int i = 0; i < core.TubeLogger.Count; ++i)
+            {
+                str += "Tube " + core.TubeLogger[i].TubeNumber + ": " + core.TubeLogger[i].Message + "\r\n";
+            }
             try
             {
-                String str = "";
-                for(int i = 0; i < algos.TubeLogger.Count; ++i)
+                if (textBox5.InvokeRequired)
                 {
-                    str += "Tube " + algos.TubeLogger[i].TubeNumber + ": " + algos.TubeLogger[i].Message + "\r\n";
+                    UpdateTubeLogCallback d = new UpdateTubeLogCallback(UpdateTubeLog);
+                    this.Invoke(d, new object[] { sender, e });
                 }
-                textBox5.Text = str;
+                else
+                {
+                    textBox5.Text = str;
+                }
             }
-            catch
+            catch(System.InvalidOperationException err)
             {
                 // skip logging if it interfere with other GUI operations
+                Console.WriteLine(str);
             }
         }
         delegate string SelectedLaserCalibrationPathD();
@@ -225,6 +234,7 @@ namespace Furgostat
             button21.Enabled = LockOn;
             button22.Enabled = LockOn;
             button23.Enabled = LockOn;
+            button24.Enabled = LockOn;
             textBox6.Enabled = LockOn;
             textBox9.Enabled = LockOn;
             textBox13.Enabled = LockOn;
@@ -241,6 +251,9 @@ namespace Furgostat
             textBox27.Enabled = LockOn;
             textBox28.Enabled = LockOn;
             textBox29.Enabled = LockOn;
+            textBox30.Enabled = LockOn;
+            textBox31.Enabled = LockOn;
+            textBox32.Enabled = LockOn;
             LockOn = !LockOn;
         }
 
@@ -772,7 +785,7 @@ namespace Furgostat
 
         private void radioButton7_CheckedChanged(object sender, EventArgs e)
         {
-
+            groupBox9.Visible = radioButton7.Checked;
         }
 
         private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -1071,6 +1084,48 @@ namespace Furgostat
             {
                 // Empty box, do nothing
             }
+        }
+
+        private void textBox30_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                algos.SuctionTime = Double.Parse(textBox30.Text);
+            }
+            catch (FormatException err)
+            {
+                // Empty Box, do nothing
+            }
+        }
+
+        private void button24_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                double Value = Double.Parse(textBox31.Text);
+                if (textBox32.Text.Contains(":"))
+                {
+                    string[] Parse = textBox32.Text.Split(':');
+                    for (int i = Int32.Parse(Parse[0]); i <= (Int32.Parse(Parse[1])); ++i)
+                    {
+                        algos.TimedMorbidostatHours[i - 1] = Value;
+                    }
+                }
+                else
+                {
+                    int i = Int32.Parse(textBox32.Text) - 1;
+                    algos.TimedMorbidostatHours[i - 1] = Value;
+                }
+            }
+            catch (FormatException err)
+            {
+                // Empty box, do nothing
+            }
+        }
+
+        private void textBox31_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
     }

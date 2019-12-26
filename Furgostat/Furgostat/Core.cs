@@ -5,6 +5,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Timers;
 using System.IO;
+using System.Threading.Tasks;
 namespace Furgostat
 {
     public class Core
@@ -12,6 +13,7 @@ namespace Furgostat
         /* Interesting data structure for .NET: https://docs.microsoft.com/en-us/dotnet/api/system.collections.objectmodel.observablecollection-1?view=netframework-4.8
          Used for notification purposes in the GUI.*/
         public ObservableCollection<LogEntry> MainLog = new ObservableCollection<LogEntry>();
+        public ObservableCollection<TubeEntry> TubeLogger = new ObservableCollection<TubeEntry>();
         // TODO: Configurable
         public int[] Suction;
         public int[,] MediaRelayIDs;
@@ -46,7 +48,7 @@ namespace Furgostat
             DrugARelayIDs = new int[,] { { 0, 2 }, { 0, 5 }, { 0, 8 }, { 0, 11 }, { 0, 14 }, { 0, 17 }, { 0, 20 }, { 0, 23 }, { 1, 2 }, { 1, 5 }, { 1, 8 }, { 1, 11 }, { 1, 14 }, { 1, 17 }, { 1, 20 } };
             DrugBRelayIDs = new int[,] { { 0, 3 }, { 0, 6 }, { 0, 9 }, { 0, 12 }, { 0, 15 }, { 0, 18 }, { 0, 21 }, { 0, 24 }, { 1, 3 }, { 1, 6 }, { 1, 9 }, { 1, 12 }, { 1, 15 }, { 1, 18 }, { 1, 21 } };
             LEDPDSwitch = new int[] { 1, 24 }; //currently active but circuit is not modified yet
-            for (int i = 0; i < Input.HighChan; ++i)
+            for (int i = 0; i < Input.HighChan + 1; ++i)
                 OD.Add(new List<double>());
             GlobalWatch.Start();
             ReinitializeODReader = new System.Timers.Timer(3600 * 1000);
@@ -176,15 +178,7 @@ namespace Furgostat
                 Relays[MediaRelayIDs[i, 0]].TurnOff(MediaRelayIDs[i, 1]);
             }
             Log("Media is stopped for cultures" + string.Join(", ", cosmetic));
-        }
-        public void AllSuction(double Time, double MixingTime)
-        {
-            Thread.Sleep((Int32) MixingTime * 1000);
-            Relays[Suction[0]].TurnOn(Suction[1]);
-            Log("Suction has started for all cultures." + Time);
-            Thread.Sleep((Int32)(Time * 1000));
-            Relays[Suction[0]].TurnOff(Suction[1]);
-            Log("Suction is stopped for all cultures.");
+            //algos.re1.Set();
         }
         public void FillDrugA(List<int> CultureId, double Time)
         {
@@ -222,16 +216,26 @@ namespace Furgostat
             }
             Log("Drug B is stopped for cultures" + string.Join(", ", Cosmetic));
         }
+        public void AllSuction(double Time, double MixingTime)
+        {
+            Thread.Sleep((Int32)MixingTime * 1000);
+            Relays[Suction[0]].TurnOn(Suction[1]);
+            Log("Suction has started for all cultures.");
+            Thread.Sleep((Int32)(Time * 1000));
+            Relays[Suction[0]].TurnOff(Suction[1]);
+            Log("Suction is stopped for all cultures.");
+        }
         public List<List<double>> LastCycleReadings()
         {
             List<List<double>> LastCycleOD = new List<List<double>>();
-            int N = OD[0].Count;
             for(int i = 0; i < OD.Count; ++i)
             {
+                int N = OD[i].Count;
                 LastCycleOD.Add(new List<double>());
-                for(int j = (Int32) (algos.CyclePeriod * 60 / DataCollectionFrequency); j >= 0 ; --j)
+                for(int j = Math.Min((Int32) (algos.CyclePeriod * 60 / DataCollectionFrequency) - 1, N) - 1; j > 0 ; --j)
                 {
-                    LastCycleOD[i].Add(OD[i][N - j - 1]);
+                    int index = N - j - 1;
+                    LastCycleOD[i].Add(OD[i][N - j - 1]); // TODO: Bug
                 }
             }
             return LastCycleOD;
