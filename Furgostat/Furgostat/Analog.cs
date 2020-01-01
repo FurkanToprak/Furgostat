@@ -45,7 +45,7 @@ namespace Furgostat
         public Double[] p1, p0;
         public string dataPath = @"C:\Users\s135322\Desktop\Furgostat\data";
         public string currentCalibrationDatafile;
-
+        public Double[] BackgroundNoise = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         public Analog(int mcc_index)
         {
             DaqBoard = new MccDaq.MccBoard(0);
@@ -59,8 +59,7 @@ namespace Furgostat
         public void readBlank()
         {
             Double[] OD = StartSingleReadingWindow(5, "OD");
-            for (int i = 0; i < OD.Length; ++i)
-                p0[i] += (-OD[i]);
+            BackgroundNoise = OD;
         }
         public void updateCalibrationVectors(double[] np1, double[] np0, string datafile)
         {
@@ -82,7 +81,7 @@ namespace Furgostat
             Double odc;
             for (int i = LowChan; i <= HighChan; ++i)
             {
-                odc = AD[i] * p1[i] + p0[i];
+                odc = AD[i] * p1[i] + p0[i] - BackgroundNoise[i];
                 if (odc <= 1e2)
                     OD[i] = odc;
                 else

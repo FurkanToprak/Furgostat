@@ -396,6 +396,8 @@ namespace Furgostat
                 algos.StartCycle("Morbidostat");
             else if (radioButton7.Checked)
                 algos.StartCycle("Timed Morbidostat");
+            else if (radioButton8.Checked)
+                algos.StartCycle("Old Morbidostat");
         }
 
         private void radioButton5_CheckedChanged(object sender, EventArgs e)
@@ -505,7 +507,8 @@ namespace Furgostat
                 for (int i = 1; i <= 24; ++i)
                 {
                     core.Relaybox1.TurnOff(i);
-                    core.Relaybox2.TurnOff(i);
+                    if (i <= 22)
+                        core.Relaybox2.TurnOff(i);
                 }
                 core.Log("All valves are off.");
             }
@@ -522,7 +525,8 @@ namespace Furgostat
                 for (int i = 1; i <= 24; ++i)
                 {
                     core.Relaybox1.TurnOn(i);
-                    core.Relaybox2.TurnOn(i);
+                    if(i <= 22)
+                        core.Relaybox2.TurnOn(i);
                 }
                 core.Log("All valves are on.");
             }

@@ -24,9 +24,9 @@ namespace Furgostat
         public string Path = @"C:\Users\s135322\Desktop\Furgostat\data\";
         public string FileName;
         public static int TubeCount = 15;
-        public double CyclePeriod = 10; // Minutes
+        public double CyclePeriod = 18; // Minutes
         public Boolean IsRunning = false;
-        public double[] LowerThreshold = { 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001 };
+        public double[] LowerThreshold = { 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03 };
         public double[] MiddleThreshold = { 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15 };
         public double[] UpperThreshold = { 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3 };
         public double[] GlobalThreshold = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
@@ -71,10 +71,14 @@ namespace Furgostat
             {
                 Cycler.Elapsed += new System.Timers.ElapsedEventHandler(ChemostatCycle);
             }
-            else if(Type == "Timed Morbidostat")
+            else if (Type == "Timed Morbidostat")
             {
                 TimedMorbidostatCounter = 0;
                 Cycler.Elapsed += new System.Timers.ElapsedEventHandler(TimedMorbidostatCycle);
+            }
+            else if (Type == "Old Morbidostat")
+            {
+                Cycler.Elapsed += new System.Timers.ElapsedEventHandler(OldMorbidostatCycle);
             }
             for (int i = 0; i < TubeCount; ++i)
             {
@@ -107,7 +111,7 @@ namespace Furgostat
             {
                 Phases.Add(Tubes[i].Phase);
                 double ODFinal = 0;
-                for (int j = Math.Max(0, LastCycleReadings[i].Count - 1 - 5); j < LastCycleReadings[i].Count; ++j)
+                for (int j = Math.Max(0, LastCycleReadings[i].Count - 5); j < LastCycleReadings[i].Count; ++j)
                 {
                     ODFinal += LastCycleReadings[i][j];
                 }
@@ -117,14 +121,14 @@ namespace Furgostat
                 Tubes[i].ODFinal = ODFinal;
                 if (Tubes[i].TimedMorbidostatState == 0 && ODFinal < LowerThreshold[i])
                 {
-                    Tubes[i].Last10Events.Add("Nothing Added");
+                    Tubes[i].Last10Events.Add("Nothing");
                     Tubes[i].Phase = "I";
                 }
                 else if (Tubes[i].TimedMorbidostatState == 0 && 
                     (TimedMorbidostatCounter % ((Int32)(TimedMorbidostatHours[i] * 60 / CyclePeriod)) != 0 || 
                     ODFinal >= LowerThreshold[i] && ODFinal < MiddleThreshold[i]))
                 {
-                    Tubes[i].Last10Events.Add("Media Added");
+                    Tubes[i].Last10Events.Add("Media");
                     Tubes[i].Phase = "M";
                     WillMedia.Add(i);
                     double NewVolume = MediaAdditionTime * 1.2 / 60;
@@ -137,7 +141,7 @@ namespace Furgostat
                 {
                     if (++Tubes[i].TimedMorbidostatState == 3)
                         Tubes[i].TimedMorbidostatState = 0;
-                    Tubes[i].Last10Events.Add("Drug A Added");
+                    Tubes[i].Last10Events.Add("Drug A");
                     Tubes[i].Phase = "A";
                     WillDrugA.Add(i);
                     double NewVolume = DrugAdditionTime * 1.2 / 60;
@@ -156,10 +160,11 @@ namespace Furgostat
             Document(LastCycleReadings, Phases);
             TimedMorbidostatCounter++;
             UpdateTubeStatus();
+            ResetRelays();
         }
-        public void MorbidostatCycle(object state, System.Timers.ElapsedEventArgs e)
+        public void OldMorbidostatCycle(object state, System.Timers.ElapsedEventArgs e)
         {
-            core.Log("Morbidostat cycle is active.");
+            core.Log("Old Morbidostat cycle is active.");
             // Seperate tubes into those that will recieve drug A, drug B, and media
             List<int> WillDrugA = new List<int>();
             List<int> WillDrugB = new List<int>();
@@ -170,7 +175,7 @@ namespace Furgostat
             {
                 Phases.Add(Tubes[i].Phase);
                 double ODFinal = 0; // Last 5 OD values.
-                for (int j = Math.Max(0, LastCycleReadings[i].Count - 1 - 5); j < LastCycleReadings[i].Count; ++j)
+                for (int j = Math.Max(0, LastCycleReadings[i].Count - 5); j < LastCycleReadings[i].Count; ++j)
                 {
                     ODFinal += LastCycleReadings[i][j];
                 }
@@ -192,14 +197,111 @@ namespace Furgostat
                 Tubes[i].I = I;
                 Tubes[i].D = D;
                 Tubes[i].PID = PID;
-                if(ODFinal > GlobalThreshold[i])
+                if (ODFinal > GlobalThreshold[i])
                 {
-                    Tubes[i].Last10Events.Add("Nothing Added; Optical Error.");
+                    Tubes[i].Last10Events.Add("Nothing; Optical Error.");
                     Tubes[i].Phase = "I";
                 }
                 else if (ODFinal < LowerThreshold[i])
                 {
-                    Tubes[i].Last10Events.Add("Nothing Added");
+                    Tubes[i].Last10Events.Add("Nothing");
+                    Tubes[i].Phase = "I";
+                }
+                else if (PID > 0)
+                {
+                    if (ODFinal > UpperThreshold[i] || Tubes[i].DrugConcentration >= 0.6 * TubeDrugAConcentrationSettings[i])
+                    {
+                        // Drug B:
+                        WillDrugB.Add(i);
+                        Tubes[i].Last10Events.Add("Drug B");
+                        Tubes[i].Phase = "B";
+                        double NewVolume = DrugAdditionTime * 1.2 / 60;
+                        Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i] + TubeDrugBConcentrationSettings[i] * NewVolume) / (TubeVolumeSettings[i] + NewVolume);
+                    }
+                    else
+                    {
+                        // Drug A:
+                        WillDrugA.Add(i);
+                        Tubes[i].Last10Events.Add("Drug A");
+                        Tubes[i].Phase = "A";
+                        double NewVolume = DrugAdditionTime * 1.2 / 60;
+                        Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i] + TubeDrugAConcentrationSettings[i] * NewVolume) / (TubeVolumeSettings[i] + NewVolume);
+                    }
+                }
+                else
+                {
+                    WillMedia.Add(i);
+                    Tubes[i].Last10Events.Add("Media");
+                    Tubes[i].Phase = "M";
+                    double NewVolume = MediaAdditionTime * 1.2 / 60;
+                    Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i]) / (TubeVolumeSettings[i] + NewVolume);
+                }
+                if (Tubes[i].Last10Events.Count > 10)
+                    Tubes[i].Last10Events.RemoveAt(0);
+            }
+            if (WillMedia.Count > 0)
+                core.FillMedia(WillMedia, MediaAdditionTime);
+            if (WillDrugA.Count > 0)
+                core.FillDrugA(WillDrugA, DrugAdditionTime);
+            if (WillDrugB.Count > 0)
+                core.FillDrugB(WillDrugB, DrugAdditionTime);
+            if (WillDrugA.Count + WillDrugB.Count + WillMedia.Count > 0)
+            {
+                core.AllSuction(SuctionTime, MixingTime);
+            }
+            core.Log("Morbidostat cycle is done.");
+            Document(LastCycleReadings, Phases, true);
+            UpdateTubeStatus();
+            ResetRelays();
+        }
+        public void MorbidostatCycle(object state, System.Timers.ElapsedEventArgs e)
+        {
+            core.Log("Morbidostat cycle is active.");
+            // Seperate tubes into those that will recieve drug A, drug B, and media
+            List<int> WillDrugA = new List<int>();
+            List<int> WillDrugB = new List<int>();
+            List<int> WillMedia = new List<int>();
+            List<List<double>> LastCycleReadings = core.LastCycleReadings();
+            List<string> Phases = new List<string>();
+            for (int i = 0; i < LastCycleReadings.Count; ++i)
+            {
+                Phases.Add(Tubes[i].Phase);
+                double ODFinal = 0; // Last 5 OD values.
+                for (int j = Math.Max(0, LastCycleReadings[i].Count - 5); j < LastCycleReadings[i].Count; ++j)
+                {
+                    ODFinal += LastCycleReadings[i][j];
+                }
+                // Possible Bug: CycleReadings[0] can have count of 0.
+                ODFinal /= Math.Min(LastCycleReadings[0].Count, 5); // Mean
+                double P = ODFinal - MiddleThreshold[i];
+                Tubes[i].PTracker.Add(P);
+                if (Tubes[i].PTracker.Count > 5)
+                    Tubes[i].PTracker.RemoveAt(0);
+                double I = 0;
+                for (int j = 0; j < Tubes[i].PTracker.Count; ++j)
+                {
+                    I += Tubes[i].PTracker[j];
+                }
+                double D = (ODFinal - Tubes[i].ODFinal) / (CyclePeriod / 60);
+                double PID = 0.01 * I + D;
+                if (ODFinal > UpperThreshold[i])
+                    PID += 1E5;
+                else if (ODFinal < MiddleThreshold[i])
+                    PID -= 1E5;
+                else PID += P;
+                Tubes[i].ODFinal = ODFinal;
+                Tubes[i].P = P;
+                Tubes[i].I = I;
+                Tubes[i].D = D;
+                Tubes[i].PID = PID;
+                if(ODFinal > GlobalThreshold[i])
+                {
+                    Tubes[i].Last10Events.Add("Nothing; Optical Error.");
+                    Tubes[i].Phase = "I";
+                }
+                else if (ODFinal < LowerThreshold[i])
+                {
+                    Tubes[i].Last10Events.Add("Nothing");
                     Tubes[i].Phase = "I";
                 }
                 else if (Tubes[i].DrugAllowed && PID > 0)
@@ -209,7 +311,7 @@ namespace Furgostat
                     {
                         // Drug B:
                         WillDrugB.Add(i);
-                        Tubes[i].Last10Events.Add("Drug B Added");
+                        Tubes[i].Last10Events.Add("Drug B");
                         Tubes[i].Phase = "B";
                         double NewVolume = DrugAdditionTime * 1.2 / 60;
                         Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i] + TubeDrugBConcentrationSettings[i] * NewVolume) / (TubeVolumeSettings[i] + NewVolume);
@@ -218,7 +320,7 @@ namespace Furgostat
                     {
                         // Drug A:
                         WillDrugA.Add(i);
-                        Tubes[i].Last10Events.Add("Drug A Added");
+                        Tubes[i].Last10Events.Add("Drug A");
                         Tubes[i].Phase = "A";
                         double NewVolume = DrugAdditionTime * 1.2 / 60;
                         Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i] + TubeDrugAConcentrationSettings[i] * NewVolume) / (TubeVolumeSettings[i] + NewVolume);
@@ -228,7 +330,7 @@ namespace Furgostat
                 {
                     Tubes[i].DrugAllowed = true;
                     WillMedia.Add(i);
-                    Tubes[i].Last10Events.Add("Media Added");
+                    Tubes[i].Last10Events.Add("Media");
                     Tubes[i].Phase = "M";
                     double NewVolume = MediaAdditionTime * 1.2 / 60;
                     Tubes[i].DrugConcentration = (Tubes[i].DrugConcentration * TubeVolumeSettings[i]) / (TubeVolumeSettings[i] + NewVolume);
@@ -249,6 +351,7 @@ namespace Furgostat
             core.Log("Morbidostat cycle is done.");
             Document(LastCycleReadings, Phases, true);
             UpdateTubeStatus();
+            ResetRelays();
         }
         public void TurbidostatCycle(object state, System.Timers.ElapsedEventArgs e)
         {
@@ -260,7 +363,7 @@ namespace Furgostat
             {
                 Phases.Add(Tubes[i].Phase);
                 double ODFinal = 0;
-                for (int j = Math.Max(0, LastCycleReadings[i].Count - 1 - 5); j < LastCycleReadings[i].Count; ++j)
+                for (int j = Math.Max(0, LastCycleReadings[i].Count - 5); j < LastCycleReadings[i].Count; ++j)
                 {
                     ODFinal += LastCycleReadings[i][j];
                 }
@@ -269,19 +372,19 @@ namespace Furgostat
                 Tubes[i].ODFinal = ODFinal;
                 if (ODFinal > GlobalThreshold[i])
                 {
-                    Tubes[i].Last10Events.Add("Nothing Added; Optical Error.");
+                    Tubes[i].Last10Events.Add("Nothing; Optical Error.");
                     Tubes[i].Phase = "I";
                 }
                 else if (ODFinal > MiddleThreshold[i] && ODFinal < UpperThreshold[i])
                 {
                     WillMedia.Add(i);
                     Tubes[i].Phase = "M";
-                    Tubes[i].Last10Events.Add("Media Added");
+                    Tubes[i].Last10Events.Add("Media");
                 }
                 else
                 {
                     Tubes[i].Phase = "I";
-                    Tubes[i].Last10Events.Add("Nothing Added");
+                    Tubes[i].Last10Events.Add("Nothing");
                 }
                 if (Tubes[i].Last10Events.Count > 10)
                     Tubes[i].Last10Events.RemoveAt(0);
@@ -294,6 +397,7 @@ namespace Furgostat
             core.Log("Turbidostat cycle is done.");
             Document(LastCycleReadings, Phases);
             UpdateTubeStatus();
+            ResetRelays();
         }
         public void ChemostatCycle(object state, System.Timers.ElapsedEventArgs e)
         {
@@ -305,7 +409,7 @@ namespace Furgostat
             {
                 Phases.Add(Tubes[i].Phase);
                 double ODFinal = 0;
-                for (int j = Math.Max(0, LastCycleReadings[i].Count - 1 - 5); j < LastCycleReadings[i].Count; ++j)
+                for (int j = Math.Max(0, LastCycleReadings[i].Count - 5); j < LastCycleReadings[i].Count; ++j)
                 {
                     ODFinal += LastCycleReadings[i][j];
                 }
@@ -314,19 +418,19 @@ namespace Furgostat
                 Tubes[i].ODFinal = ODFinal;
                 if (ODFinal > GlobalThreshold[i])
                 {
-                    Tubes[i].Last10Events.Add("Nothing Added; Optical Error.");
+                    Tubes[i].Last10Events.Add("Nothing; Optical Error.");
                     Tubes[i].Phase = "I";
                 }
                 else if (ODFinal > LowerThreshold[i] && ODFinal < UpperThreshold[i])
                 {
                     WillMedia.Add(i);
                     Tubes[i].Phase = "M";
-                    Tubes[i].Last10Events.Add("Media Added");
+                    Tubes[i].Last10Events.Add("Media");
                 }
                 else
                 {
                     Tubes[i].Phase = "I";
-                    Tubes[i].Last10Events.Add("Nothing Added");
+                    Tubes[i].Last10Events.Add("Nothing");
                 }
                 if (Tubes[i].Last10Events.Count > 10)
                     Tubes[i].Last10Events.RemoveAt(0);
@@ -339,6 +443,7 @@ namespace Furgostat
             core.Log("Chemostat cycle is done.");
             Document(LastCycleReadings, Phases);
             UpdateTubeStatus();
+            ResetRelays();
         }
         public void StopCycle(String Type)
         {
@@ -429,6 +534,21 @@ namespace Furgostat
                 if (TubeStatus[i])
                     core.TubeLogger.Add(new TubeEntry { TubeNumber = i + 1, Message = String.Join(" -> ", Tubes[i].Last10Events)}); 
 
+            }
+        }
+        public void ResetRelays()
+        {
+            try
+            {
+                for (int i = 1; i <= 24; ++i)
+                {
+                    core.Relaybox1.TurnOff(i);
+                    if (i <= 22)
+                        core.Relaybox2.TurnOff(i);
+                }
+            }
+            catch
+            {
             }
         }
     }
